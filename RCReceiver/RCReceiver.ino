@@ -17,10 +17,9 @@
 
 #define RF_ADDRESS_SIZE 6
 const byte RF_Address[RF_ADDRESS_SIZE] = "1Node";
-uint8_t address[][6] = { "1Node"};
 
 
-#define N_CHANNELS 9u // Channels are exactly the same as the remote here. The physical outputs however, might be less
+#define N_CHANNELS 7u // Channels are exactly the same as the remote here. The physical outputs however, might be less
 
 typedef struct RFPayload{
   uint16_t u16_Channels[N_CHANNELS];
@@ -35,11 +34,7 @@ RFPayload payload;
 
 
 void setup() {
-   Serial.begin(115200);
-  while (!Serial) {
-    // some boards need to wait to ensure access to serial over USB
-  }
-
+  Serial.begin(115200);
   // initialize the transceiver on the SPI bus
   if (!radio.begin()) {
     Serial.println(F("radio hardware is not responding!!"));
@@ -47,15 +42,10 @@ void setup() {
   }
   radio.setPALevel(RF24_PA_LOW);
   radio.setPayloadSize(sizeof(RFPayload));
-  //radio.openWritingPipe(address[0]);
   radio.openReadingPipe(0, RF_Address);
   radio.startListening();
 
-//  printf_begin();
-  radio.printDetails();
   servo.attach(3);
-  pinMode(5, OUTPUT);
-  pinMode(6, OUTPUT);
 }
 
 int i = 0;
@@ -93,14 +83,8 @@ void loop() {
       // payload.d_Joystick_Left.u16_Value_X = 509;
     }
 //
-    servo_turn = map(payload.u16_Channels[1], 0, 1023, 0, 180);
-    // Serial.print("Servo:");
-    // Serial.print(servo_turn);
-    // Serial.print("\t");
+    servo_turn = map(payload.u16_Channels[4], 0, 1023, 0, 180);
     servo.write(servo_turn);
 
-
-   
-    delay(50);
-  
+  delay(5);
 }
