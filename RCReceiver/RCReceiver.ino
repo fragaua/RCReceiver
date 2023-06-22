@@ -18,51 +18,62 @@
 #define RF_ADDRESS_SIZE 6
 const byte RF_Address[RF_ADDRESS_SIZE] = "1Node";
 
-
 #define N_CHANNELS 7u // Channels are exactly the same as the remote here. The physical outputs however, might be less
+#define N_PHYSICAL_CHANNELS 6u // Channels are exactly the same as the remote here. The physical outputs however, might be less
+#define FIRST_CHANNEL 2u // Currently defined like this becuse the other channels are just after this one. Not the best approach though
 
 typedef struct RFPayload{
   uint16_t u16_Channels[N_CHANNELS];
 }RFPayload;
 
 
+typedef struct ChannelOutput_t
+{
+  uint8_t u8_Pin;
+  Servo   e_Output;
+  bool    b_ServoType; /* True for servos and outputs controlled via 0-180 angle. False for ESCs and others controlled by 50Hz pwm (1to2us period)*/
+}ChannelOutput_t;
+
+bool Output_Channel_Types[N_PHYSICAL_CHANNELS] = {false, false, true, true, true, true}; // Hardcoded, first two channels are ESC like channels.
+ChannelOutput_t Receiver_Output[N_PHYSICAL_CHANNELS];
 
 RF24 radio(9, 8); // use a different set of signals so we liberate one of the PWM outputs
-Servo servo;
-
 RFPayload payload;
 
 
 void setup() {
   Serial.begin(115200);
-  // initialize the transceiver on the SPI bus
+  
+  /* Initialize radio*/
   if (!radio.begin()) {
-    Serial.println(F("radio hardware is not responding!!"));
-    while (1) {}  // hold in infinite loop
+    // TODO: Blink Internal LED fast
+    while (1) {} 
   }
+
   radio.setPALevel(RF24_PA_LOW);
   radio.setPayloadSize(sizeof(RFPayload));
   radio.openReadingPipe(0, RF_Address);
   radio.startListening();
 
-  servo.attach(3);
+   
+  /* Initialize output channels with their type and pin. Attach the servo object */
+  uint8_t i;
+  for(i = 0; i < N_PHYSICAL_CHANNELS; i++)
+  {
+    Receiver_Output[i].u8_Pin = FIRST_CHANNEL + i;
+    Receiver_Output[i].e_Output.attach(Receiver_Output[i].u8_Pin);
+    Receiver_Output[i].b_ServoType = Output_Channel_Types[i];
+  }
 }
 
-int i = 0;
-int cnt = 0;
-uint16_t motor_run, servo_turn;
+uint8_t cnt, i;
 void loop() {
    // TODO: Use internal LED to give some information on the communication state
     uint8_t pipe;
     if (radio.available(&pipe)) {              // is there a payload? get the pipe number that recieved it
       uint8_t bytes = radio.getPayloadSize();  // get the size of the payload
       radio.read(&payload, bytes);             // fetch payload from FIFO
-      // Serial.print(F("Received "));
-      // Serial.print(bytes);  // print the size of the payload
-      // Serial.println();
-      // Serial.print(F(" bytes on pipe "));
-      //Serial.print(pipe);  // print the pipe number
-      //Serial.print(F(": "));
+
       if(cnt % 20 == 0)
       {
         uint8_t i;
@@ -82,9 +93,20 @@ void loop() {
       // delay(1000);
       // payload.d_Joystick_Left.u16_Value_X = 509;
     }
-//
-    servo_turn = map(payload.u16_Channels[4], 0, 1023, 0, 180);
-    servo.write(servo_turn);
+
+    // TODO: Create function to translate from receiving channel to the receiver output
+    for(i = 0; i < N_PHYSICAL_CHANNELS; i++)
+    {
+      if(Receiver_Output[i].b_ServoType)
+      {
+        Receiver_Output[i].e_Output.write(map(payload.u16_Channels[i], 0, 1023, 0, 180));
+      }
+      else
+      {
+        Receiver_Output[i].e_Output.writeMicroseconds(map(payload.u16_Channels[i], 0, 1023, 1000, 2000));
+      }
+
+    }
 
   delay(5);
 }
