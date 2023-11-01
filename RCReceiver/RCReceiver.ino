@@ -40,15 +40,23 @@ ChannelOutput_t Receiver_Output[N_PHYSICAL_CHANNELS];
 RF24 radio(9, 8); // use a different set of signals so we liberate one of the PWM outputs
 RFPayload payload;
 
-
 void setup() {
   Serial.begin(115200);
   
+  pinMode(LED_BUILTIN, OUTPUT);
   /* Initialize radio*/
-  if (!radio.begin()) {
-    // TODO: Blink Internal LED fast
-    while (1) {} 
+  if (!radio.begin()) 
+  {
+    Serial.println("Failed");
+    while (1) 
+    {
+      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+      delay(1000);                       // wait for a second
+      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+      delay(1000);     
+    } 
   }
+  
 
   radio.setPALevel(RF24_PA_LOW);
   radio.setPayloadSize(sizeof(RFPayload));
@@ -66,47 +74,24 @@ void setup() {
   }
 }
 
-uint8_t cnt, i;
+uint8_t i;
+bool    led_debug;
 void loop() {
    // TODO: Use internal LED to give some information on the communication state
     uint8_t pipe;
     if (radio.available(&pipe)) {              // is there a payload? get the pipe number that recieved it
       uint8_t bytes = radio.getPayloadSize();  // get the size of the payload
       radio.read(&payload, bytes);             // fetch payload from FIFO
-
-      if(cnt % 20 == 0)
-      {
-        uint8_t i;
-        for(i = 0; i < N_CHANNELS; i++)
-        {
-          Serial.print("Channel ");
-          Serial.print(i);
-          Serial.print(" :");
-          Serial.println(payload.u16_Channels[i]);
-        }
-          Serial.println("\n\n\n");
-      }
-      cnt++;
     }
-    else{
-      // Serial.println("Com Broken");
-      // delay(1000);
-      // payload.d_Joystick_Left.u16_Value_X = 509;
+    else
+    { 
+      // TODO: Count "not available" events and eventually flash built in led
     }
 
-    // TODO: Create function to translate from receiving channel to the receiver output
-    for(i = 0; i < N_PHYSICAL_CHANNELS; i++)
-    {
-      if(Receiver_Output[i].b_ServoType)
-      {
-        Receiver_Output[i].e_Output.write(map(payload.u16_Channels[i], 0, 1023, 0, 180));
-      }
-      else
-      {
-        Receiver_Output[i].e_Output.writeMicroseconds(map(payload.u16_Channels[i], 0, 1023, 1000, 2000));
-      }
+  // TODO: Create function to translate from receiving channel to the receiver output
+  for(i = 0; i < N_PHYSICAL_CHANNELS; i++)
+  {
+    Receiver_Output[i].e_Output.writeMicroseconds(map(payload.u16_Channels[i], 0, 1023, 1000, 2000));
+  }
 
-    }
-
-  delay(5);
 }
