@@ -39,10 +39,8 @@ typedef struct ChannelOutput_t
 {
   uint8_t u8_Pin;
   Servo   output;
-  bool    b_ServoType; /* True for servos and outputs controlled via 0-180 angle. False for ESCs and others controlled by 50Hz pwm (1to2us period)*/
 }ChannelOutput_t;
 
-bool Output_Channel_Types[N_PHYSICAL_CHANNELS] = {false, false, true, true, true, true}; // Hardcoded, first two channels are ESC like channels.
 ChannelOutput_t Receiver_Output[N_PHYSICAL_CHANNELS];
 
 RF24 radio(RF24_CE_PIN, RF24_CSN_PIN);
@@ -89,7 +87,6 @@ void setup() {
   {
     Receiver_Output[i].u8_Pin = FIRST_CHANNEL + i;
     Receiver_Output[i].output.attach(Receiver_Output[i].u8_Pin);
-    Receiver_Output[i].b_ServoType = Output_Channel_Types[i];
   }
 }
 
