@@ -1,15 +1,10 @@
 #include "Configuration.h"
 #include <RF24.h>
-#include <Arduino.h>
 #include <Servo.h>
 #include <SoftPWM.h>
 
 
-const byte RF_Address[RF_ADDRESS_SIZE] = "1Node";
 
-typedef struct RFPayload{
-  uint16_t u16_Channels[N_CHANNELS];
-}RFPayload;
 
 
 /* The actual physical channels on the receiver side, used to control any module using 50Hz PWM Control*/
@@ -30,23 +25,20 @@ AnalogOutput_t  Receiver_Analog_Output[N_ANALOG_CHANNELS];
 RF24 radio(RF24_CE_PIN, RF24_CSN_PIN);
 RFPayload payload;
 
-
 void initRadio(RF24* pRadio)
 {
 
   /* Initialize radio*/
   if (!pRadio->begin()) 
   {
-    while (1) 
-    {
-    } 
+    Serial.println("Radio init failed!");
+    // while (1); 
   }
   
   pRadio->setPALevel(RF24_PA_LOW);
   pRadio->setPayloadSize(sizeof(RFPayload));
   pRadio->openReadingPipe(0, RF_Address);
   pRadio->startListening();
-
 }
 
 void initPayload(RFPayload* const pl)
@@ -84,12 +76,18 @@ void initAnalogChannels(AnalogOutput_t* pAnalogOutput)
 bool receivePayload(RFPayload* pl, RF24* pRadio)
 {
   uint8_t pipe;
-  if (pRadio->available(&pipe)) {             
+  if (pRadio->available(&pipe)) 
+  {   
     uint8_t bytes = pRadio->getPayloadSize();  
-    pRadio->read(pl, bytes);                 
+    pRadio->read(pl, bytes);      
+#if DEBUG == ON
+    printPayload(pl);
+#endif           
     return true;
   }
-
+  else
+  {
+  }
   return false;
 
 }
@@ -124,6 +122,21 @@ void writeAnalogChannels(const RFPayload* const pl, AnalogOutput_t* pAnalogOutpu
 
 } 
 
+void printPayload(RFPayload* pl)
+{
+
+  // static unsigned long prevTime;
+  uint8_t i;
+  // if(millis() - prevTime > 2000)
+  // {
+    // for(i = 0; i < N_PHYSICAL_CHANNELS; i++)
+    // {
+    //   Serial.println(pl->u16_Channels[i]);
+    // }
+  //   prevTime = millis();
+  // }
+}
+
 
 
 void writePayload(RFPayload* pl, ChannelOutput_t* pChannelOutput, AnalogOutput_t* pAnalogOutput)
@@ -137,8 +150,9 @@ void writePayload(RFPayload* pl, ChannelOutput_t* pChannelOutput, AnalogOutput_t
 
 
 void setup() {
-  Serial.begin(115200);
   
+  Serial.begin(115200);
+
   initPayload(&payload);
   initPhysicalChannels(Receiver_Output);
   initAnalogChannels(Receiver_Analog_Output);
@@ -151,6 +165,5 @@ void loop()
 {
   receivePayload(&payload, &radio);
   writePayload(&payload, Receiver_Output, Receiver_Analog_Output);
-
-  delay(50);
+  // delay(20);
 }

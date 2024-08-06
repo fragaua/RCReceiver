@@ -12,6 +12,18 @@
 
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
+#include <Arduino.h>
+
+
+/*
+* Feature availability
+*/
+
+#define OFF 0u
+#define ON  1u
+
+#define DEBUG OFF
+
 
 /* 
  *  PIN Definitions  
@@ -36,19 +48,31 @@
 * NRF24L01 RFCom related
 */
 
-#define RF_ADDRESS_SIZE 6
+#define RF_ADDRESS_SIZE 3u
+const byte RF_Address[RF_ADDRESS_SIZE] = "FG";
+
+
+
+
 
 
 /*
 * Channel configuration
 */
 
-#define N_CHANNELS             7u // Channels are exactly the same as the remote here. The physical outputs however, might be less
+#define N_CHANNELS             8u // Channels are exactly the same as the remote here. The physical outputs however, might be less
 #define N_PHYSICAL_CHANNELS    6u // Channels are exactly the same as the remote here. The physical outputs however, might be less
 #define N_ANALOG_CHANNELS      3u
 #define FIRST_PHYSICAL_CHANNEL 2u // Currently defined like this becuse the other channels are just after this one. Not the best approach though
 #define FIRST_ANALOG_CHANNEL   A0 // Currently defined like this becuse the other channels are just after this one. Not the best approach though
 
+
+
+/* Payload definition */
+
+typedef struct RFPayload{
+  uint16_t u16_Channels[N_CHANNELS];
+}RFPayload;
 
 /*
 * 
